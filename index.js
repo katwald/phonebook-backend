@@ -1,7 +1,8 @@
 const express = require("express");
+const morgan = require("morgan");
+
 const app = express();
 app.use(express.json());
-
 const persons = [
   {
     id: 1,
@@ -24,6 +25,7 @@ const persons = [
     number: "39-23-6423122",
   },
 ];
+app.use(morgan(":method :url :response-time :req[headers]"));
 
 app.get("/api/info", (request, response) => {
   const info = `Phonebook has info for ${persons.length} people `;
