@@ -42,7 +42,6 @@ app.get("/api/persons", (request, response) => {
 
 app.get("/api/persons/:id", (request, response) => {
   const id = Number(request.params.id);
-  console.log("id", id, "type", typeof id);
   const person = persons.find((person) => person.id === id);
   if (person) {
     response.json(person);
