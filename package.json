@@ -7,7 +7,8 @@
     "start": "node index.js",
     "dev": "nodemon index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build:ui": "rm -rf build && cd ../fullstack-open-2023/part2/phone-book/ && npm run build && cp -r build  ../../../phonebook-backend/"
+    "build:ui": "rm -rf build && cd ../fullstack-open-2023/part2/phone-book/ && npm run build && cp -r build  ../../../phonebook-backend/",
+    "deploy:full": "npm run build:ui && git add . && git commit -m uibuild && git push"
   },
   "author": "",
   "license": "ISC",
