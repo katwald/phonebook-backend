@@ -7,6 +7,9 @@ morgan.token("body", (req) => {
 
 const app = express();
 app.use(express.json());
+app.use(express.static("build"));
+app.use(morgan(":method :url :status :response-time ms :body]"));
+
 const persons = [
   {
     id: 1,
@@ -29,7 +32,6 @@ const persons = [
     number: "39-23-6423122",
   },
 ];
-app.use(morgan(":method :url :status :response-time ms :body]"));
 
 app.get("/api/info", (request, response) => {
   const info = `Phonebook has info for ${persons.length} people `;
