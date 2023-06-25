@@ -2,85 +2,100 @@ require("dotenv").config();
 const express = require("express");
 const morgan = require("morgan");
 
+const Person = require("./models/person");
+
 morgan.token("body", (req) => {
   return JSON.stringify(req.body);
 });
 
 const app = express();
+app.use(express.static("build")); // express checks if build directory contains a  requested file and if found returns it.
 app.use(express.json());
-app.use(express.static("build"));
 app.use(morgan(":method :url :status :response-time ms :body]"));
 
-const persons = [
-  {
-    id: 1,
-    name: "Arto Hellas",
-    number: "040-123456",
-  },
-  {
-    id: 2,
-    name: "Ada Lovelace",
-    number: "39-44-5323523",
-  },
-  {
-    id: 3,
-    name: "Dan Abramov",
-    number: "12-43-234345",
-  },
-  {
-    id: 4,
-    name: "Mary Poppendieck",
-    number: "39-23-6423122",
-  },
-];
-
+const unkownEndpoint = (request, response) => {
+  response.status(404).send({ error: "unknown endpoint" });
+};
+const errorHandler = (error, request, response, next) => {
+  console.error(error.message);
+  if (error.name === "CastError") {
+    return response.status(400).send({ error: "malformatted id" });
+  }
+  next(error);
+};
 app.get("/api/info", (request, response) => {
   const info = `Phonebook has info for ${persons.length} people `;
   const date = Date();
   response.send(`<p>${info}</p> <p>${date}</p>`);
 });
 app.get("/api/persons", (request, response) => {
-  response.json(persons);
+  Person.find({}).then((persons) => {
+    response.json(persons);
+  });
 });
 
-app.get("/api/persons/:id", (request, response) => {
-  const id = Number(request.params.id);
-  const person = persons.find((person) => person.id === id);
-  if (person) {
-    response.json(person);
-  } else {
-    response.status(400).end();
-  }
+app.get("/api/persons/:id", (request, response, next) => {
+  const id = request.params.id;
+  Person.findById(id)
+    .then((person) => {
+      if (person) {
+        response.json(person);
+      } else {
+        response.status(400).end();
+      }
+    })
+    .catch((error) => next(error));
 });
 
-const generateId = () => {
-  const maxId = persons.length > 0 ? Math.max(...persons.map((n) => n.id)) : 0;
-  return maxId + 1;
-};
-app.post("/api/persons", (request, response) => {
+app.delete("/api/persons/:id", (request, response, next) => {
+  const id = request.params.id;
+  Person.findByIdAndDelete(id)
+    .then((person) => {
+      response.status(200).end();
+    })
+    .catch((error) => next(error));
+});
+
+app.put("/api/persons/:id", (request, response, next) => {
   const { name, number } = request.body;
+  const id = request.params.id;
 
   const person = {
     name: name,
     number: number,
-    id: generateId(),
   };
+  if (!name || !number) {
+    return response.status(400).json({
+      error: "content missing",
+    });
+  }
+  Person.findByIdAndUpdate(id, person, { new: true })
+    .then((updatedPerson) => {
+      response.json(updatedPerson);
+    })
+    .catch((error) => next(error));
+});
 
-  const isNameExist = persons.find((person) => {
-    return person.name === name;
+app.post("/api/persons", (request, response, next) => {
+  const { name, number } = request.body;
+
+  const person = new Person({
+    name: name,
+    number: number,
   });
   if (!name || !number) {
-    response.status(400).json({
-      error: "name or number missing",
-    });
-  } else if (isNameExist) {
-    response.status(400).json({
-      error: `name  already exists`,
-    });
-  } else {
-    response.json(person);
+    response.status(400).send({ error: "name or number missing" });
   }
+  person
+    .save()
+    .then((savedPerson) => {
+      response.json(savedPerson);
+    })
+    .catch((error) => next(error));
 });
+
+app.use(unkownEndpoint);
+app.use(errorHandler);
 
 const PORT = process.env.PORT;
 app.listen(PORT, () => {
